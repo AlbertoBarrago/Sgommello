@@ -23,8 +23,10 @@ Nato per gioco, realmente utile.
 - Quando appare **mette in pausa la musica** (Spotify / Apple Music) e la riprende
   quando se ne va — se non stava suonando nulla, non parte nulla.
 - **Webcam (opt-in)**: se abiliti l'opzione, mentre è a schermo controlla se ti sei
-  alzato davvero — 5 secondi senza faccia in camera e si congeda da solo. La camera
-  è attiva **solo** mentre Sgommello è visibile.
+  alzato davvero — 5 secondi senza faccia in camera e **si mette a dormire** per la
+  durata pausa che hai scelto (1–15 min), col countdown nel fumetto. Pausa finita:
+  se ne va da solo. Torni prima? Si sveglia arrabbiato e ricomincia. La camera è
+  attiva **solo** mentre Sgommello è visibile.
 
 ## Requisiti
 
@@ -42,6 +44,21 @@ Dalla menu bar (icona kickboxing 🥋):
 - **Metti in pausa / Riattiva** — sospende il monitoraggio
 - **Mostra ora (test)** — lo evoca subito, per demo o taratura
 - **Impostazioni…** — timer, voce on/off, scelta della voce italiana
+
+## Release (DMG per i colleghi)
+
+```sh
+scripts/release.sh 0.1.0   # → dist/Sgommello-0.1.0.dmg
+```
+
+Lo script compila in release (binario universale se possibile), assembla
+`Sgommello.app` (Info.plist con `LSUIElement`, icona generata dall'emoji 👹),
+firma ad-hoc e impacchetta il DMG con il link ad Applications. Chi installa:
+trascina in Applicazioni e al primo avvio **tasto destro → Apri** (l'app non è
+notarizzata).
+
+Il sito di presentazione è in [`docs/`](docs/index.html), pronto per GitHub
+Pages (Settings → Pages → branch `main`, cartella `/docs`).
 
 ## Architettura
 

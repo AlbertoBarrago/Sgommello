@@ -31,14 +31,21 @@ enum Config {
         "AHIA! le mani a posto!",
         "mi hai PIZZICATO?! ora mi arrabbio davvero",
         "riprova e ti mangio il cursore",
-        "GRRR… conta i tuoi ultimi pixel",
+        "conta i tuoi ultimi pixel, umano",
         "ma sei coraggioso o solo incosciente?"
     ]
-    /// Said (almost kindly) when the webcam sees the user actually stand up.
-    static let calmPhrases = [
-        "e bravo… vai, sgranchisciti. ci vediamo dopo",
-        "così si fa. torno quando ti risiedi, promesso",
-        "finalmente! vai vai, il monitor resta qui"
+    /// Said (almost kindly) when the webcam sees the user stand up: he lies
+    /// down and guards the break by sleeping through it.
+    static let sleepPhrases = [
+        "e bravo… io intanto mi schiaccio un pisolino",
+        "così si fa. io dormo, tu cammina",
+        "finalmente… zzz… e non tornare presto"
+    ]
+    /// Snapped when the user comes back BEFORE the break is over.
+    static let wakePhrases = [
+        "GIÀ TORNATO?! la pausa non è mica finita!",
+        "ehi! mancavano ancora dei minuti, torna fuori!",
+        "ti ho visto eh! quella non era una pausa vera"
     ]
     /// Barked right as a punch lands on the screen.
     static let punchPhrases = [

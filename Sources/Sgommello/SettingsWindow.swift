@@ -9,6 +9,9 @@ final class SettingsModel: ObservableObject {
     @Published var triggerMinutes: Double {
         didSet { AppSettings.shared.triggerMinutes = triggerMinutes }
     }
+    @Published var breakMinutes: Double {
+        didSet { AppSettings.shared.breakMinutes = breakMinutes }
+    }
     @Published var voiceEnabled: Bool {
         didSet { AppSettings.shared.voiceEnabled = voiceEnabled }
     }
@@ -34,6 +37,7 @@ final class SettingsModel: ObservableObject {
 
     init() {
         triggerMinutes = AppSettings.shared.triggerMinutes
+        breakMinutes = AppSettings.shared.breakMinutes
         voiceEnabled = AppSettings.shared.voiceEnabled
         presenceEnabled = AppSettings.shared.presenceEnabled
         voices = SpeechService.shared.italianVoices.map { ($0.identifier, $0.name) }
@@ -67,6 +71,18 @@ struct SettingsView: View {
                         model.onIntervalChange?()
                     }
                     Text("Sgommello arriva dopo \(Int(model.triggerMinutes)) minuti di attività continua.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Slider(value: $model.breakMinutes, in: 1...15, step: 1) {
+                        Text("Durata pausa")
+                    } minimumValueLabel: {
+                        Text("1m")
+                    } maximumValueLabel: {
+                        Text("15m")
+                    }
+                    Text("Con la webcam attiva: se ti alzi, dorme per \(Int(model.breakMinutes)) minuti e poi se ne va da solo. Se torni prima, si sveglia.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

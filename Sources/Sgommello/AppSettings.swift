@@ -10,6 +10,18 @@ final class AppSettings {
     private let voiceIdentifierKey = "sgommello.voiceIdentifier"
 
     private let presenceEnabledKey = "sgommello.presenceEnabled"
+    private let breakMinutesKey = "sgommello.breakMinutes"
+
+    /// How long a proper break should last (webcam mode: how long he sleeps).
+    var breakMinutes: Double {
+        get {
+            let stored = defaults.double(forKey: breakMinutesKey)
+            return stored > 0 ? stored : 5
+        }
+        set {
+            defaults.set(max(1, newValue), forKey: breakMinutesKey)
+        }
+    }
 
     /// Webcam presence detection (off by default: it's a privacy opt-in).
     var presenceEnabled: Bool {

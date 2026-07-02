@@ -11,12 +11,16 @@ e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 - Multi-monitor: il mostro compare solo sul monitor principale; i secondari vengono oscurati con un velo scuro (fix del rendering sproporzionato su schermi con geometrie diverse)
 
 ### Added
+- Ciclo pausa completo (webcam): quando ti alzi, Sgommello si accoccola e dorme per la durata pausa scelta (1–15 min, default 5) mostrando il countdown nel fumetto; a pausa completata sparisce da solo, se torni prima si sveglia arrabbiato e ricomincia
 - Pausa automatica della musica: quando Sgommello appare mette in pausa Spotify e Apple Music (solo se stanno suonando, via Apple Events) e riprende la riproduzione quando se ne va
 - Integrazione webcam opt-in (AVFoundation + Vision): mentre Sgommello è a schermo, se la camera non vede una faccia per 5 secondi ti sei alzato davvero — lui saluta quasi gentilmente e l'overlay sfuma da solo. La camera gira solo con l'overlay attivo; toggle in Impostazioni, spento di default
 - Info.plist embeddato nel binario via linker (`__TEXT,__info_plist`) con `NSCameraUsageDescription`, per il permesso camera senza bundle `.app`
 
+- Script di release (`scripts/release.sh`): assembla `Sgommello.app` (bundle con LSUIElement e icona generata dall'emoji), firma ad-hoc e crea il DMG distribuibile
+- Sito di presentazione statico in `docs/`, pronto per GitHub Pages
+
 ### Pianificato
-- Bundle `.app` con icona (per distribuzione e avvio al login)
+- Avvio al login
 
 ## [0.1.0] - 2026-07-02
 

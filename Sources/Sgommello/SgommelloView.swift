@@ -4,8 +4,9 @@ import AppKit
 
 final class SgommelloView: NSView {
     /// What the monster is currently doing. Transitions happen in step().
+    /// `.sleeping` is special: entered/left only via fallAsleep()/wake().
     private enum Action {
-        case idle, walking, punching, gesturing
+        case idle, walking, punching, gesturing, sleeping
     }
 
     private var action: Action = .idle
@@ -22,6 +23,8 @@ final class SgommelloView: NSView {
     private var rageLevel: CGFloat = 0
     /// Timeline instant of the last pinch, drives the dizzy eye-spin.
     private var pinchAt: CGFloat = -10
+    /// Timeline instant the nap ends, for the countdown in the bubble.
+    private var wakeAt: CGFloat = 0
 
     private var position: CGPoint = .zero
     private var moveStart: CGPoint = .zero
@@ -85,6 +88,13 @@ final class SgommelloView: NSView {
         // Slow rotation so every line actually gets read before the next one.
         phraseTimer = Timer.scheduledTimer(withTimeInterval: 12, repeats: true) { [weak self] _ in
             guard let self else { return }
+            if self.action == .sleeping {
+                // Silent countdown bubble instead of a barked phrase.
+                let remaining = max(1, Int(ceil((self.wakeAt - self.elapsed) / 60)))
+                self.phrase = "zzz… mi sveglio tra \(remaining) min"
+                self.phraseChangedAt = self.elapsed
+                return
+            }
             self.phrase = Config.phrases.randomElement()!
             self.phraseChangedAt = self.elapsed
             if self.playsAudio {
@@ -120,6 +130,8 @@ final class SgommelloView: NSView {
     /// Clicking on the monster pinches him: he jolts, his eyes spin and get
     /// redder, and he holds a grudge (rageLevel) that fades slowly.
     override func mouseDown(with event: NSEvent) {
+        // Let him sleep: the break countdown is not a minigame.
+        guard action != .sleeping else { return }
         let location = convert(event.locationInWindow, from: nil)
         guard hypot(location.x - position.x, location.y - position.y) < Config.spriteSize.width * 0.6 else {
             return
@@ -235,6 +247,8 @@ final class SgommelloView: NSView {
                 if actionElapsed >= punchDuration { startNextAction() }
             case .gesturing:
                 if actionElapsed >= gestureDuration { startNextAction() }
+            case .sleeping:
+                break // Naps end only via wake() or the controller's timer.
             }
         }
 
@@ -303,7 +317,7 @@ final class SgommelloView: NSView {
     /// for walking, punching (fist grows toward the viewer) and the classic
     /// "umbrella" gesture.
     private func drawMonster(in context: CGContext, walkPhase: CGFloat,
-                             punchT: CGFloat?, gestureT: CGFloat?) {
+                             punchT: CGFloat?, gestureT: CGFloat?, sleeping: Bool = false) {
         let w = Config.spriteSize.width
         let h = Config.spriteSize.height
         let skin = NSColor(calibratedRed: 0.58, green: 0.16, blue: 0.2, alpha: 1)
@@ -358,8 +372,23 @@ final class SgommelloView: NSView {
 
         // Eyes: whites, pupils looking forward, angry brows.
         // Pupils shift yellow → blood red with rage, and spin dizzily for a
-        // second right after a pinch.
+        // second right after a pinch. Asleep: just two closed-lid arcs and a
+        // tiny relaxed mouth, no brows.
         let talkTime = elapsed - phraseChangedAt
+        if sleeping {
+            skinDark.setStroke()
+            for xCenter: CGFloat in [-0.105, 0.115] {
+                let lid = NSBezierPath()
+                lid.appendArc(withCenter: NSPoint(x: w * xCenter, y: h * 0.15), radius: w * 0.055,
+                              startAngle: 200, endAngle: 340, clockwise: false)
+                lid.lineWidth = 4
+                lid.stroke()
+            }
+            NSColor(calibratedRed: 0.2, green: 0.04, blue: 0.06, alpha: 1).setFill()
+            NSBezierPath(ovalIn: NSRect(x: -w * 0.05, y: -h * 0.1,
+                                        width: w * 0.1, height: h * 0.05)).fill()
+            return
+        }
         let whiteTint = NSColor(calibratedRed: 1, green: 1 - rageLevel * 0.25, blue: 1 - rageLevel * 0.35, alpha: 1)
         whiteTint.setFill()
         NSBezierPath(ovalIn: NSRect(x: -w * 0.19, y: h * 0.08, width: w * 0.17, height: h * 0.15)).fill()
@@ -499,11 +528,16 @@ final class SgommelloView: NSView {
         guard popScale > 0.01 else { return }
 
         let isWalking = action == .walking && popT >= 1
+        let isSleeping = action == .sleeping
         // Step cadence matched to the slower stride.
         let bobPhase = sin(elapsed * 5.5)
         let bob = isWalking ? abs(bobPhase) * 9 : sin(elapsed * 2.5) * 2
         // Squash on landing, stretch at the top of each hop.
-        let squashY = isWalking ? 1 + bobPhase * 0.06 : 1 + sin(elapsed * 2.5) * 0.015
+        // Asleep: slow, deep breathing instead of the walk bounce.
+        var squashY = isWalking ? 1 + bobPhase * 0.06 : 1 + sin(elapsed * 2.5) * 0.015
+        if isSleeping {
+            squashY = 0.92 + sin(elapsed * 1.6) * 0.04
+        }
         let stretchX = 2 - squashY
 
         let w = Config.spriteSize.width
@@ -537,10 +571,14 @@ final class SgommelloView: NSView {
         NSBezierPath(ovalIn: shadowRect).fill()
 
         context.saveGState()
-        context.translateBy(x: position.x, y: position.y + bob)
-        // Slight lean into the walking direction, stronger lean when punching.
+        context.translateBy(x: position.x, y: position.y + (isSleeping ? -h * 0.08 : bob))
+        // Slight lean into the walking direction, stronger lean when punching,
+        // slumped over to one side while sleeping.
         if isWalking {
             context.rotate(by: -facingScaleX * 0.06)
+        }
+        if isSleeping {
+            context.rotate(by: facingScaleX * 0.18)
         }
         if punchLean != 0 {
             context.rotate(by: -facingScaleX * punchLean)
@@ -550,8 +588,23 @@ final class SgommelloView: NSView {
                         y: popScale * squashY * lungeScale)
         drawMonster(in: context, walkPhase: isWalking ? bobPhase : 0,
                     punchT: action == .punching ? punchT : nil,
-                    gestureT: action == .gesturing ? min(1, actionElapsed / gestureDuration) : nil)
+                    gestureT: action == .gesturing ? min(1, actionElapsed / gestureDuration) : nil,
+                    sleeping: isSleeping)
         context.restoreGState()
+
+        // Floating Zzz drifting up from his head while he sleeps.
+        if isSleeping {
+            for i in 0..<3 {
+                let t = (elapsed * 0.35 + CGFloat(i) / 3).truncatingRemainder(dividingBy: 1)
+                let zAttrs: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.boldSystemFont(ofSize: 16 + t * 14),
+                    .foregroundColor: NSColor.white.withAlphaComponent(0.8 * (1 - t))
+                ]
+                ("z" as NSString).draw(at: NSPoint(x: position.x + w * 0.3 + t * 46,
+                                                    y: position.y + h * 0.3 + t * 60),
+                                       withAttributes: zAttrs)
+            }
+        }
 
         // Speech bubble appears only once the monster is fully out.
         guard popT >= 1 else {
@@ -631,17 +684,33 @@ final class SgommelloView: NSView {
         }
     }
 
-    /// The webcam saw the user stand up: drop the rage, stand still and say
-    /// goodbye almost kindly while the controller fades the overlay out.
-    func calmDown() {
+    /// The webcam saw the user stand up: he curls up and sleeps through the
+    /// break, showing a countdown. The controller owns the wake-up timer.
+    func fallAsleep(for duration: TimeInterval) {
         rageLevel = 0
-        action = .idle
+        action = .sleeping
         actionElapsed = 0
-        idleDuration = .greatestFiniteMagnitude
-        phrase = Config.calmPhrases.randomElement()!
+        wakeAt = elapsed + CGFloat(duration)
+        phrase = Config.sleepPhrases.randomElement()!
         phraseChangedAt = elapsed
         if playsAudio {
             SpeechService.shared.speak(phrase)
+        }
+    }
+
+    /// The user came back before the break was over: he wakes up annoyed
+    /// and goes right back to harassing.
+    func wake() {
+        guard action == .sleeping else { return }
+        rageLevel = min(1, rageLevel + 0.34)
+        action = .idle
+        actionElapsed = 0
+        idleDuration = 1.0
+        shake = max(shake, 0.4)
+        phrase = Config.wakePhrases.randomElement()!
+        phraseChangedAt = elapsed
+        if playsAudio {
+            SpeechService.shared.speak(phrase, rage: rageLevel)
         }
     }
 

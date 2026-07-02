@@ -8,20 +8,22 @@ final class OverlayController {
     private var timeInSafeZone: TimeInterval = 0
     private let presenceMonitor = PresenceMonitor()
     private let mediaPauser = MediaPauser()
-    /// Set while the calm farewell is playing, so a concurrent safe-zone
-    /// dismissal can't double-fire the teardown.
-    private var isCalmingDown = false
+    /// Counts down the configured break while the monster sleeps; firing it
+    /// means the break was completed and the overlay can leave on its own.
+    private var breakTimer: Timer?
     var onDismiss: (() -> Void)?
 
     init() {
         presenceMonitor.onUserLeft = { [weak self] in
-            self?.calmDismiss()
+            self?.startBreak()
+        }
+        presenceMonitor.onUserReturned = { [weak self] in
+            self?.endBreakEarly()
         }
     }
 
     func show() {
         guard windows.isEmpty else { return }
-        isCalmingDown = false
         // Camera runs only while the monster is on screen (and only if the
         // user opted in from the settings).
         presenceMonitor.start()
@@ -90,16 +92,16 @@ final class OverlayController {
         windows.forEach { ($0.contentView as? SgommelloView)?.safeZoneProgress = progress }
     }
 
-    /// The user actually stood up: let the monster say goodbye, then fade
-    /// the whole overlay out instead of cutting it off.
-    private func calmDismiss() {
-        guard !windows.isEmpty, !isCalmingDown else { return }
-        isCalmingDown = true
-        safeZoneTimer?.invalidate()
-        safeZoneTimer = nil
-        windows.forEach { ($0.contentView as? SgommelloView)?.calmDown() }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+    /// The user actually stood up: the monster sleeps through the configured
+    /// break. If the timer completes, he leaves on his own; if the webcam
+    /// sees the user again first, endBreakEarly() cancels it and wakes him.
+    private func startBreak() {
+        guard !windows.isEmpty, breakTimer == nil else { return }
+        let duration = AppSettings.shared.breakMinutes * 60
+        windows.forEach { ($0.contentView as? SgommelloView)?.fallAsleep(for: duration) }
+        breakTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
             guard let self, !self.windows.isEmpty else { return }
+            self.breakTimer = nil
             NSAnimationContext.runAnimationGroup({ ctx in
                 ctx.duration = 1.2
                 self.windows.forEach { $0.animator().alphaValue = 0 }
@@ -109,8 +111,18 @@ final class OverlayController {
         }
     }
 
+    /// Back before the break was over: cancel the countdown, wake him up angry.
+    private func endBreakEarly() {
+        guard breakTimer != nil else { return }
+        breakTimer?.invalidate()
+        breakTimer = nil
+        windows.forEach { ($0.contentView as? SgommelloView)?.wake() }
+    }
+
     private func dismiss() {
         guard !windows.isEmpty else { return }
+        breakTimer?.invalidate()
+        breakTimer = nil
         presenceMonitor.stop()
         mediaPauser.resume()
         safeZoneTimer?.invalidate()
