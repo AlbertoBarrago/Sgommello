@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.albz.sgommello</string>
+	<key>CFBundleName</key>
+	<string>Sgommello</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Sgommello mette in pausa la musica (Spotify, Musica) mentre è a schermo e la riprende quando se ne va.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Sgommello usa la webcam solo mentre è a schermo, per accorgersi che ti sei alzato e calmarsi.</string>
+</dict>
+</plist>
