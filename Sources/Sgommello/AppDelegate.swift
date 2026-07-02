@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let activityMonitor = ActivityMonitor()
     private let overlay = OverlayController()
     private let settingsController = SettingsWindowController()
+    private let aboutController = AboutWindowController()
     private let updaterController = SPUStandardUpdaterController(
         startingUpdater: true,
         updaterDelegate: nil,
@@ -46,6 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let aboutItem = NSMenuItem(title: "Informazioni su Sgommello…", action: #selector(openAbout), keyEquivalent: "")
         aboutItem.target = self
+        aboutItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
         menu.addItem(aboutItem)
 
         let updateItem = NSMenuItem(
@@ -54,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             keyEquivalent: ""
         )
         updateItem.target = updaterController
+        updateItem.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
         menu.addItem(updateItem)
         menu.addItem(.separator())
 
@@ -80,15 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openAbout() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Sgommello",
-            .applicationIcon: aboutIcon(),
-            .credits: NSAttributedString(
-                string: "Creato da Alberto Barrago\n© 2026 Alberto Barrago\n\nUn promemoria per le pause, un po' aggressivo.",
-                attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)]
-            )
-        ])
+        aboutController.show()
     }
 
     @objc private func togglePause(_ sender: NSMenuItem) {
@@ -100,28 +95,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         overlay.show()
     }
 
-    private func aboutIcon() -> NSImage {
-        if let icon = NSImage(systemSymbolName: "figure.kickboxing",
-                              accessibilityDescription: "Sgommello") {
-            icon.isTemplate = false
-            icon.size = NSSize(width: 128, height: 128)
-            return icon
-        }
-
-        let image = NSImage(size: NSSize(width: 128, height: 128))
-        image.lockFocus()
-        NSString(string: "👹").draw(
-            in: NSRect(x: 0, y: 8, width: 128, height: 112),
-            withAttributes: [
-                .font: NSFont.systemFont(ofSize: 96),
-                .paragraphStyle: {
-                    let style = NSMutableParagraphStyle()
-                    style.alignment = .center
-                    return style
-                }()
-            ]
-        )
-        image.unlockFocus()
-        return image
-    }
 }

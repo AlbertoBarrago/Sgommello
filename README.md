@@ -53,7 +53,7 @@ From the menu bar (kickboxing icon 🥋):
 ## Release (DMG for your colleagues)
 
 ```sh
-scripts/release.sh 0.1.1   # → dist/Sgommello-0.1.1.dmg
+scripts/release.sh 0.1.2   # → dist/Sgommello-0.1.2.dmg
 ```
 
 The script builds a release binary (universal when possible), assembles
