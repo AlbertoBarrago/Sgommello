@@ -2,14 +2,14 @@
 
 Un mostriciattolo da menu bar per macOS che ti costringe a fare pause: dopo troppo
 tempo continuo davanti allo schermo, sbuca rompendo il vetro del monitor, ci
-cammina sopra, tira pugni che lo crepano ancora di più e ti insulta — a voce.
+cammina sopra, tira pugni che lo crepano ancora di più e ti insulta, a voce.
 
 Nato per gioco, realmente utile.
 
 ## Cosa fa
 
 - Monitora l'attività di mouse e tastiera. Dopo **45 minuti** continui (configurabile
-  5–120) compare sul **monitor principale** sopra qualsiasi finestra, mentre gli
+  5-120) compare sul **monitor principale** sopra qualsiasi finestra, mentre gli
   altri monitor vengono "spenti" con un velo scuro.
 - Sbuca da una crepa stile vetro rotto, gironzola, **tira pugni che spaccano nuove
   porzioni di schermo** e fa il gesto dell'ombrello.
@@ -21,10 +21,10 @@ Nato per gioco, realmente utile.
   progresso incluso). Se invece resti idle 60 secondi, il contatore riparte da zero:
   la pausa vera è l'unica vittoria.
 - Quando appare **mette in pausa la musica** (Spotify / Apple Music) e la riprende
-  quando se ne va — se non stava suonando nulla, non parte nulla.
+  quando se ne va; se non stava suonando nulla, non parte nulla.
 - **Webcam (opt-in)**: se abiliti l'opzione, mentre è a schermo controlla se ti sei
-  alzato davvero — 5 secondi senza faccia in camera e **si mette a dormire** per la
-  durata pausa che hai scelto (1–15 min), col countdown nel fumetto. Pausa finita:
+  alzato davvero; 5 secondi senza faccia in camera e **si mette a dormire** per la
+  durata pausa che hai scelto (1-15 min), col countdown nel fumetto. Pausa finita:
   se ne va da solo. Torni prima? Si sveglia arrabbiato e ricomincia. La camera è
   attiva **solo** mentre Sgommello è visibile.
 
@@ -41,9 +41,9 @@ swift run            # avvia (icona nella menu bar, nessuna finestra)
 ```
 
 Dalla menu bar (icona kickboxing 🥋):
-- **Metti in pausa / Riattiva** — sospende il monitoraggio
-- **Mostra ora (test)** — lo evoca subito, per demo o taratura
-- **Impostazioni…** — timer, voce on/off, scelta della voce italiana
+- **Metti in pausa / Riattiva** sospende il monitoraggio
+- **Mostra ora (test)** lo evoca subito, per demo o taratura
+- **Impostazioni…** timer, voce on/off, scelta della voce italiana
 
 ## Release (DMG per i colleghi)
 
@@ -90,5 +90,5 @@ anche senza bundle `.app`. Al primo uso della webcam macOS mostra il prompt.
 
 ## Roadmap
 
-Vedi [CHANGELOG.md](CHANGELOG.md) — in sintesi: bundle `.app` con icona per
-distribuirlo e farlo partire al login.
+Vedi [CHANGELOG.md](CHANGELOG.md); in sintesi: avvio al login e notarizzazione
+per l'installazione senza tasto destro.
