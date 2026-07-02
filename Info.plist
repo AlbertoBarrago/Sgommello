@@ -7,10 +7,20 @@
 	<key>CFBundleName</key>
 	<string>Sgommello</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.1.1</string>
+	<key>CFBundleVersion</key>
+	<string>0.1.1</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Sgommello mette in pausa la musica (Spotify, Musica) mentre è a schermo e la riprende quando se ne va.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Sgommello usa la webcam solo mentre è a schermo, per accorgersi che ti sei alzato e calmarsi.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/AlbertoBarrago/Sgommello/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>cFHtJGEhaF/cZyO7c8hWpUoyCT2UsuntFhh6qlMx2tk=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
 </dict>
 </plist>

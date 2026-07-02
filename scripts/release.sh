@@ -1,7 +1,7 @@
 #!/bin/bash
 # Builds Sgommello.app and packages it into a distributable DMG.
 #
-# Usage: scripts/release.sh [version]   (default: 0.1.0)
+# Usage: scripts/release.sh [version]   (default: 0.1.1)
 # Output: dist/Sgommello-<version>.dmg
 #
 # The app is ad-hoc signed: colleagues must right-click > Open the first
@@ -9,9 +9,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION="${1:-0.1.0}"
+VERSION="${1:-0.1.1}"
 APP="dist/Sgommello.app"
 DMG="dist/Sgommello-${VERSION}.dmg"
+SPARKLE_PUBLIC_KEY="cFHtJGEhaF/cZyO7c8hWpUoyCT2UsuntFhh6qlMx2tk="
+
+if [ -z "${SPARKLE_PUBLIC_KEY}" ] || [ "${SPARKLE_PUBLIC_KEY}" = "REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY" ]; then
+    echo "❌ Sparkle public key is not configured."
+    echo "   Generate one with Sparkle's generate_keys tool and set SUPublicEDKey."
+    exit 1
+fi
 
 echo "==> Building release binary"
 # Universal binary when the toolchain supports it, native otherwise.
@@ -25,8 +32,18 @@ fi
 
 echo "==> Assembling ${APP}"
 rm -rf dist
-mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources"
+mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources" "${APP}/Contents/Frameworks"
 cp "${BIN}" "${APP}/Contents/MacOS/Sgommello"
+
+SPARKLE_FRAMEWORK=$(find ".build" -path "*/Sparkle.framework" -type d | head -n 1)
+if [ -z "${SPARKLE_FRAMEWORK}" ]; then
+    echo "❌ Sparkle.framework was not found under .build."
+    echo "   Run: swift package resolve"
+    exit 1
+fi
+
+echo "==> Embedding Sparkle.framework"
+ditto "${SPARKLE_FRAMEWORK}" "${APP}/Contents/Frameworks/Sparkle.framework"
 
 cat > "${APP}/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -55,6 +72,14 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
 	<string>Sgommello mette in pausa la musica (Spotify, Musica) mentre è a schermo e la riprende quando se ne va.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Sgommello usa la webcam solo mentre è a schermo, per accorgersi che ti sei alzato e calmarsi.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/AlbertoBarrago/Sgommello/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>${SPARKLE_PUBLIC_KEY}</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
 </dict>
 </plist>
 PLIST
@@ -94,6 +119,7 @@ iconutil -c icns "${ICONSET}" -o "${APP}/Contents/Resources/Sgommello.icns"
 rm -rf "${ICONSET}"
 
 echo "==> Signing (ad-hoc)"
+codesign --force --deep --sign - "${APP}/Contents/Frameworks/Sparkle.framework"
 codesign --force --deep --sign - "${APP}"
 
 echo "==> Creating ${DMG}"

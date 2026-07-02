@@ -7,6 +7,12 @@ e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-02
+
+### Added
+- Voce "Informazioni su Sgommello..." nel menu, con pannello About standard macOS, logo e credito autore.
+- Auto-update via Sparkle: voce "Controlla aggiornamenti..." nel menu, feed su GitHub Releases e workflow che genera `appcast.xml` firmato.
+
 ### Changed
 - Multi-monitor: il mostro compare solo sul monitor principale; i secondari vengono oscurati con un velo scuro (fix del rendering sproporzionato su schermi con geometrie diverse)
 
@@ -40,5 +46,6 @@ e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 ### Changed
 - Rimossa la personalizzazione di immagine e suoni: palette fissa di suoni di sistema a volumi tarati, mostro solo procedurale (scelta di semplicità)
 
-[Unreleased]: https://example.com/sgommello/compare/v0.1.0...HEAD
-[0.1.0]: https://example.com/sgommello/releases/tag/v0.1.0
+[Unreleased]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/AlbertoBarrago/Sgommello/releases/tag/v0.1.0
