@@ -31,7 +31,7 @@ Born as a joke, genuinely useful.
   wakes up angry and starts over. The camera is active **only** while Sgommello
   is visible.
 - **Auto-updates**: Sparkle checks signed updates from GitHub Releases; you can
-  also trigger **Controlla aggiornamenti...** from the menu.
+  also trigger **Update** from the menu.
 
 ## Requirements
 
@@ -45,15 +45,16 @@ swift build          # compile
 swift run            # start (menu bar icon, no window)
 ```
 
-From the menu bar (kickboxing icon 🥋):
+From the menu bar:
 - **Metti in pausa / Riattiva** suspends monitoring
-- **Mostra ora (test)** summons it immediately, for demos or tuning
-- **Impostazioni…** timer, break duration, voice on/off, Italian voice picker
+- **Impostazioni** timer, break duration, voice on/off, Italian voice picker, and test summon
+- **Informazioni** shows version and author details
+- **Update** checks for new releases
 
 ## Release (DMG for your colleagues)
 
 ```sh
-scripts/release.sh 0.1.2   # → dist/Sgommello-0.1.2.dmg
+scripts/release.sh 0.2.0   # → dist/Sgommello-0.2.0.dmg
 ```
 
 The script builds a release binary (universal when possible), assembles

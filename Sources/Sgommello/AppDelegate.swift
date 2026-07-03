@@ -17,15 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        // Template SF Symbol so the icon matches the system menu bar style
-        // and adapts to light/dark appearance, like native status items.
-        if let icon = NSImage(systemSymbolName: "figure.kickboxing",
-                              accessibilityDescription: "Sgommello") {
-            icon.isTemplate = true
-            statusItem.button?.image = icon
-        } else {
-            statusItem.button?.title = "👹"
-        }
+        updateStatusItemIcon()
 
         let menu = NSMenu()
         menu.addItem(withTitle: "Sgommello è attivo", action: nil, keyEquivalent: "")
@@ -36,22 +28,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pauseItem.target = self
         menu.addItem(pauseItem)
 
-        let testItem = NSMenuItem(title: "Mostra ora (test)", action: #selector(triggerNow), keyEquivalent: "")
-        testItem.target = self
-        menu.addItem(testItem)
-        menu.addItem(.separator())
-
-        let settingsItem = NSMenuItem(title: "Impostazioni…", action: #selector(openSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: "Impostazioni", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
-        let aboutItem = NSMenuItem(title: "Informazioni su Sgommello…", action: #selector(openAbout), keyEquivalent: "")
+        let aboutItem = NSMenuItem(title: "Informazioni", action: #selector(openAbout), keyEquivalent: "")
         aboutItem.target = self
         aboutItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
         menu.addItem(aboutItem)
 
         let updateItem = NSMenuItem(
-            title: "Controlla aggiornamenti…",
+            title: "Update",
             action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
             keyEquivalent: ""
         )
@@ -89,10 +76,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func togglePause(_ sender: NSMenuItem) {
         activityMonitor.isPaused.toggle()
         sender.title = activityMonitor.isPaused ? "Riattiva" : "Metti in pausa"
+        statusItem.menu?.items.first?.title = activityMonitor.isPaused ? "Sgommello è in pausa" : "Sgommello è attivo"
+        updateStatusItemIcon()
     }
 
-    @objc private func triggerNow() {
-        overlay.show()
+    private func updateStatusItemIcon() {
+        let isActive = !activityMonitor.isPaused
+        statusItem.button?.image = StatusBarIcon.image(isActive: isActive)
+        statusItem.button?.toolTip = isActive ? "Sgommello è attivo" : "Sgommello è in pausa"
     }
 
 }
