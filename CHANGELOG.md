@@ -7,6 +7,14 @@ e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-03
+
+### Added
+- Sezione "Aggiornamenti automatici" nel sito di presentazione (`docs/index.html`).
+
+### Fixed
+- Rimosse le onomatopee ("zzz", "TIÈ!", "BAM!") dalle frasi lette dal sintetizzatore vocale, che venivano pronunciate male.
+
 ## [0.1.2] - 2026-07-02
 
 ### Changed
@@ -52,7 +60,8 @@ e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 ### Changed
 - Rimossa la personalizzazione di immagine e suoni: palette fissa di suoni di sistema a volumi tarati, mostro solo procedurale (scelta di semplicità)
 
-[Unreleased]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/AlbertoBarrago/Sgommello/releases/tag/v0.1.0

@@ -39,7 +39,7 @@ enum Config {
     static let sleepPhrases = [
         "e bravo… io intanto mi schiaccio un pisolino",
         "così si fa. io dormo, tu cammina",
-        "finalmente… zzz… e non tornare presto"
+        "finalmente… e non tornare presto"
     ]
     /// Snapped when the user comes back BEFORE the break is over.
     static let wakePhrases = [
@@ -49,8 +49,6 @@ enum Config {
     ]
     /// Barked right as a punch lands on the screen.
     static let punchPhrases = [
-        "TIÈ!",
-        "BAM!",
         "e questo è per lo straordinario!",
         "ops, m'è scappato il pugno!",
         "te l'avevo detto!"
