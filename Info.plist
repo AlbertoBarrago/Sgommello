@@ -7,9 +7,9 @@
 	<key>CFBundleName</key>
 	<string>Sgommello</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.2.0</string>
+	<string>0.2.1</string>
 	<key>CFBundleVersion</key>
-	<string>0.2.0</string>
+	<string>0.2.1</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Sgommello mette in pausa la musica (Spotify, Musica) mentre è a schermo e la riprende quando se ne va.</string>
 	<key>NSCameraUsageDescription</key>

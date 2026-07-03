@@ -7,6 +7,13 @@ e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-03
+
+### Changed
+- Riordinato il menu mettendo "Informazioni" in alto, separato dagli altri comandi.
+- Aggiunte icone dinamiche alla voce "Metti in pausa" / "Riattiva".
+- Reso più espressivo lo stato del menu: "Sgommello è in agguato" o "Sgommello sta riposando".
+
 ## [0.2.0] - 2026-07-03
 
 ### Changed
@@ -67,7 +74,8 @@ e il progetto adotta il [Semantic Versioning](https://semver.org/lang/it/).
 ### Changed
 - Rimossa la personalizzazione di immagine e suoni: palette fissa di suoni di sistema a volumi tarati, mostro solo procedurale (scelta di semplicità)
 
-[Unreleased]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/AlbertoBarrago/Sgommello/compare/v0.1.1...v0.1.2

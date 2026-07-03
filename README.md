@@ -54,7 +54,7 @@ From the menu bar:
 ## Release (DMG for your colleagues)
 
 ```sh
-scripts/release.sh 0.2.0   # → dist/Sgommello-0.2.0.dmg
+scripts/release.sh 0.2.1   # → dist/Sgommello-0.2.1.dmg
 ```
 
 The script builds a release binary (universal when possible), assembles

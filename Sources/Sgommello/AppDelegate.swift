@@ -5,6 +5,7 @@ import Sparkle
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
+    private var statusSummaryItem: NSMenuItem!
     private let activityMonitor = ActivityMonitor()
     private let overlay = OverlayController()
     private let settingsController = SettingsWindowController()
@@ -20,22 +21,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatusItemIcon()
 
         let menu = NSMenu()
-        menu.addItem(withTitle: "Sgommello è attivo", action: nil, keyEquivalent: "")
-        menu.items.first?.isEnabled = false
-        menu.addItem(.separator())
-
-        let pauseItem = NSMenuItem(title: "Metti in pausa", action: #selector(togglePause(_:)), keyEquivalent: "")
-        pauseItem.target = self
-        menu.addItem(pauseItem)
-
-        let settingsItem = NSMenuItem(title: "Impostazioni", action: #selector(openSettings), keyEquivalent: ",")
-        settingsItem.target = self
-        menu.addItem(settingsItem)
 
         let aboutItem = NSMenuItem(title: "Informazioni", action: #selector(openAbout), keyEquivalent: "")
         aboutItem.target = self
         aboutItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
         menu.addItem(aboutItem)
+        menu.addItem(.separator())
+
+        let pauseItem = NSMenuItem(title: "Metti in pausa", action: #selector(togglePause(_:)), keyEquivalent: "")
+        pauseItem.target = self
+        updatePauseMenuItem(pauseItem)
+        menu.addItem(pauseItem)
+
+        let settingsItem = NSMenuItem(title: "Impostazioni", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
 
         let updateItem = NSMenuItem(
             title: "Update",
@@ -45,6 +45,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateItem.target = updaterController
         updateItem.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
         menu.addItem(updateItem)
+        menu.addItem(.separator())
+
+        statusSummaryItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        statusSummaryItem.isEnabled = false
+        updateStatusSummaryItem()
+        menu.addItem(statusSummaryItem)
         menu.addItem(.separator())
 
         menu.addItem(withTitle: "Esci", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -75,8 +81,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func togglePause(_ sender: NSMenuItem) {
         activityMonitor.isPaused.toggle()
-        sender.title = activityMonitor.isPaused ? "Riattiva" : "Metti in pausa"
-        statusItem.menu?.items.first?.title = activityMonitor.isPaused ? "Sgommello è in pausa" : "Sgommello è attivo"
+        updatePauseMenuItem(sender)
+        updateStatusSummaryItem()
         updateStatusItemIcon()
     }
 
@@ -84,6 +90,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let isActive = !activityMonitor.isPaused
         statusItem.button?.image = StatusBarIcon.image(isActive: isActive)
         statusItem.button?.toolTip = isActive ? "Sgommello è attivo" : "Sgommello è in pausa"
+    }
+
+    private func updatePauseMenuItem(_ item: NSMenuItem) {
+        item.title = activityMonitor.isPaused ? "Riattiva" : "Metti in pausa"
+        item.image = NSImage(
+            systemSymbolName: activityMonitor.isPaused ? "play.circle" : "pause.circle",
+            accessibilityDescription: item.title
+        )
+    }
+
+    private func updateStatusSummaryItem() {
+        statusSummaryItem?.title = activityMonitor.isPaused ? "Sgommello sta riposando" : "Sgommello è in agguato"
+        statusSummaryItem?.image = NSImage(
+            systemSymbolName: activityMonitor.isPaused ? "moon.zzz" : "flame",
+            accessibilityDescription: statusSummaryItem?.title
+        )
     }
 
 }
