@@ -69,6 +69,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.activityMonitor.resetAfterBreak()
         }
         activityMonitor.start()
+
+        // Resolve camera permission upfront when presence is enabled, so the
+        // TCC prompt shows cleanly at launch instead of stealing focus from the
+        // settings window later. If access is refused, the feature can't work,
+        // so turn it off to keep the setting honest.
+        if AppSettings.shared.presenceEnabled {
+            PresenceMonitor.ensureCameraAccess { granted in
+                if !granted { AppSettings.shared.presenceEnabled = false }
+            }
+        }
     }
 
     @objc private func openSettings() {

@@ -25,12 +25,20 @@ final class PresenceMonitor: NSObject, AVCaptureVideoDataOutputSampleBufferDeleg
     var onUserLeft: (() -> Void)?
     var onUserReturned: (() -> Void)?
 
-    /// Triggers the system camera-permission prompt if not yet determined.
-    /// Called when the user flips the webcam toggle on, so the prompt shows
-    /// up right there in the settings instead of mid-appearance later.
-    static func requestPermissionIfNeeded() {
-        guard AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined else { return }
-        AVCaptureDevice.requestAccess(for: .video) { _ in }
+    /// Resolves camera access: prompts when undetermined, otherwise reports the
+    /// existing decision. The completion runs on the main queue with whether
+    /// access is granted, so callers can gate the presence feature on it.
+    static func ensureCameraAccess(_ completion: @escaping (Bool) -> Void) {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            completion(true)
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async { completion(granted) }
+            }
+        default:
+            completion(false)
+        }
     }
 
     func start() {

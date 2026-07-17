@@ -21,10 +21,13 @@ final class SettingsModel: ObservableObject {
     @Published var presenceEnabled: Bool {
         didSet {
             AppSettings.shared.presenceEnabled = presenceEnabled
-            // Ask for camera access right away, so the permission prompt
-            // shows here in the settings and not mid-appearance later.
+            // Gate the feature on real camera access: without permission it
+            // can't work, so a denied prompt flips the toggle back off.
             if presenceEnabled {
-                PresenceMonitor.requestPermissionIfNeeded()
+                PresenceMonitor.ensureCameraAccess { [weak self] granted in
+                    guard let self, !granted else { return }
+                    self.presenceEnabled = false
+                }
             }
         }
     }
