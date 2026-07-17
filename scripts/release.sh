@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 VERSION="${1:-0.2.2}"
 APP="dist/Sgommello.app"
 DMG="dist/Sgommello-${VERSION}.dmg"
-SPARKLE_PUBLIC_KEY="cFHtJGEhaF/cZyO7c8hWpUoyCT2UsuntFhh6qlMx2tk="
+SPARKLE_PUBLIC_KEY="xmgA1yzr6yAQIueqrIqCCFLCjb2HzPjuiqmZuK9ufds="
 
 if [ -z "${SPARKLE_PUBLIC_KEY}" ] || [ "${SPARKLE_PUBLIC_KEY}" = "REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY" ]; then
     echo "❌ Sparkle public key is not configured."
