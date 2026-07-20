@@ -1,7 +1,7 @@
 #!/bin/bash
 # Builds Sgommello.app and packages it into a distributable DMG.
 #
-# Usage: scripts/release.sh [version]   (default: 0.2.2)
+# Usage: scripts/release.sh [version]   (default: 0.2.3)
 # Output: dist/Sgommello-<version>.dmg
 #
 # The app is ad-hoc signed: colleagues must right-click > Open the first
@@ -9,7 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION="${1:-0.2.2}"
+VERSION="${1:-0.2.3}"
 APP="dist/Sgommello.app"
 DMG="dist/Sgommello-${VERSION}.dmg"
 SPARKLE_PUBLIC_KEY="xmgA1yzr6yAQIueqrIqCCFLCjb2HzPjuiqmZuK9ufds="
