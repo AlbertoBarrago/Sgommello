@@ -53,4 +53,23 @@ enum Config {
         "ops, m'è scappato il pugno!",
         "te l'avevo detto!"
     ]
+
+    // MARK: Varenne skin
+
+    /// Roaming phrases for the "Varenne" skin: same threatening-goofy tone.
+    static let varennePhrases = [
+        "o ti alzi o ti spiano il fegato, umano",
+        "sono Varenne e sto per spaccarti il monitor",
+        "due colpi e ti deformo tutto il desktop",
+        "senti come trema? è colpa tua che non ti muovi",
+        "alzati, o il prossimo colpo lo senti nelle ossa",
+        "guarda che ti ribalto la scrivania da qui",
+        "ancora seduto? adesso ti frullo le finestre"
+    ]
+    /// Yelled by Varenne right as it whacks the screen.
+    static let varennePunchPhrases = [
+        "e questa è per lo straordinario!",
+        "BOOM! t'ho spianato lo schermo",
+        "trema tutto, eh? e alzati!"
+    ]
 }

@@ -11,6 +11,7 @@ final class AppSettings {
 
     private let presenceEnabledKey = "sgommello.presenceEnabled"
     private let breakMinutesKey = "sgommello.breakMinutes"
+    private let varenneModeKey = "sgommello.varenneMode"
 
     /// How long a proper break should last (webcam mode: how long he sleeps).
     var breakMinutes: Double {
@@ -27,6 +28,12 @@ final class AppSettings {
     var presenceEnabled: Bool {
         get { defaults.bool(forKey: presenceEnabledKey) }
         set { defaults.set(newValue, forKey: presenceEnabledKey) }
+    }
+
+    /// "Varenne" skin: swaps the ogre for a horse with a goofy gag (off by default).
+    var varenneMode: Bool {
+        get { defaults.bool(forKey: varenneModeKey) }
+        set { defaults.set(newValue, forKey: varenneModeKey) }
     }
 
     /// Whether Sgommello speaks his phrases out loud (on by default).

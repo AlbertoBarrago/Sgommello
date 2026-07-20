@@ -29,6 +29,10 @@ final class OverlayController {
         presenceMonitor.start()
         // Silence the soundtrack: his voice deserves the stage. Resumed on dismiss.
         mediaPauser.pauseIfPlaying()
+        // Varenne warps a snapshot of the desktop: grab it now, before our
+        // overlay windows exist, so they aren't captured in the shot.
+        let varenne = AppSettings.shared.varenneMode
+        let backdrop = varenne ? screenSnapshot(of: NSScreen.main) : nil
         for screen in NSScreen.screens {
             // No `screen:` parameter on purpose: with it, contentRect gets
             // re-interpreted relative to that screen's origin, double-offsetting
@@ -45,6 +49,7 @@ final class OverlayController {
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
             if screen == NSScreen.main {
                 let sgView = SgommelloView(frame: NSRect(origin: .zero, size: screen.frame.size))
+                sgView.setBackdrop(backdrop)
                 sgView.setup(playsAudio: true)
                 window.contentView = sgView
             } else {
@@ -117,6 +122,23 @@ final class OverlayController {
         breakTimer?.invalidate()
         breakTimer = nil
         windows.forEach { ($0.contentView as? SgommelloView)?.wake() }
+    }
+
+    /// Grabs the current contents of a display, downscaled to point size so
+    /// the per-frame warp stays cheap. Returns nil without Screen Recording
+    /// permission, letting the view fall back to the plain veil.
+    private func screenSnapshot(of screen: NSScreen?) -> CGImage? {
+        guard let screen,
+              let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+              let full = CGDisplayCreateImage(CGDirectDisplayID(number.uint32Value)) else { return nil }
+        let size = screen.frame.size
+        guard let ctx = CGContext(data: nil, width: Int(size.width), height: Int(size.height),
+                                  bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return full }
+        ctx.interpolationQuality = .medium
+        ctx.draw(full, in: CGRect(origin: .zero, size: size))
+        return ctx.makeImage() ?? full
     }
 
     private func dismiss() {

@@ -1,4 +1,5 @@
 import AppKit
+import CoreImage
 
 // MARK: - Overlay View
 
@@ -69,11 +70,58 @@ final class SgommelloView: NSView {
     }
 
     private var playsAudio = false
+    /// Captured once at setup: swaps the ogre for the Varenne skin.
+    private var isVarenne = false
+    /// Desktop snapshot warped behind Varenne (nil without Screen Recording).
+    private var backdrop: CGImage?
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+    /// Extra warp/vibration energy, spiked on each thrust and decaying away.
+    private var warpIntensity: CGFloat = 0
+    /// Timeline window of the click-triggered "python" extension (Varenne).
+    private var snakeStart: CGFloat = -100
+    private var snakeEnd: CGFloat = -100
+    /// Smoothed lean of the shaft toward the pointer (Varenne, at rest).
+    private var willyLean: CGFloat = 0
+
+    /// Roaming phrases for the active skin.
+    private var roamPhrases: [String] { isVarenne ? Config.varennePhrases : Config.phrases }
+    /// Punch-impact phrases for the active skin.
+    private var punchLines: [String] { isVarenne ? Config.varennePunchPhrases : Config.punchPhrases }
+
+    /// Supplies the desktop snapshot to warp behind the Varenne skin. Passing
+    /// nil (no Screen Recording permission) falls back to the plain dark veil.
+    func setBackdrop(_ image: CGImage?) {
+        backdrop = image
+    }
+
+    /// The snapshot with an animated bump distortion pulsing from mid-screen,
+    /// intensified by each thrust — the "deforming your windows" illusion.
+    private func warpedBackdrop() -> NSImage? {
+        guard let backdrop else { return nil }
+        let base = CIImage(cgImage: backdrop)
+        let ext = base.extent
+        guard ext.width > 0, bounds.width > 0,
+              let filter = CIFilter(name: "CIBumpDistortion") else { return nil }
+        let sx = ext.width / bounds.width
+        let sy = ext.height / bounds.height
+        let pulse = 0.5 + 0.5 * sin(elapsed * 6)
+        let scale = min(0.75, 0.1 + warpIntensity * 0.5 + shake * 0.2 + pulse * 0.05)
+        filter.setValue(base, forKey: kCIInputImageKey)
+        filter.setValue(CIVector(x: bounds.midX * sx, y: bounds.midY * sy), forKey: kCIInputCenterKey)
+        filter.setValue(min(ext.width, ext.height) * 0.75, forKey: kCIInputRadiusKey)
+        filter.setValue(scale, forKey: kCIInputScaleKey)
+        guard let out = filter.outputImage?.cropped(to: ext),
+              let cg = ciContext.createCGImage(out, from: ext) else { return nil }
+        return NSImage(cgImage: cg, size: bounds.size)
+    }
 
     func setup(playsAudio: Bool = false) {
         self.playsAudio = playsAudio
+        isVarenne = AppSettings.shared.varenneMode
+        phrase = roamPhrases.randomElement()!
         wantsLayer = true
-        position = randomPoint()
+        // Varenne emerges from the bottom-centre; the ogre from a random spot.
+        position = isVarenne ? CGPoint(x: bounds.midX, y: bounds.minY + 30) : randomPoint()
         moveStart = position
         moveTarget = position
         // Stand at the impact point for a beat before the first walk.
@@ -95,9 +143,10 @@ final class SgommelloView: NSView {
                 self.phraseChangedAt = self.elapsed
                 return
             }
-            self.phrase = Config.phrases.randomElement()!
+            self.phrase = self.roamPhrases.randomElement()!
             self.phraseChangedAt = self.elapsed
-            if self.playsAudio {
+            // Varenne is mute: it nags with a flashing alert, not a voice.
+            if self.playsAudio && !self.isVarenne {
                 SpeechService.shared.speak(self.phrase, rage: self.rageLevel)
             }
         }
@@ -110,8 +159,10 @@ final class SgommelloView: NSView {
         AppSettings.shared.appearSound?.play()
         // Opening line spoken once he's out of the crack, not over the glass.
         let openingPhrase = phrase
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-            SpeechService.shared.speak(openingPhrase)
+        if !isVarenne {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                SpeechService.shared.speak(openingPhrase)
+            }
         }
     }
 
@@ -132,6 +183,18 @@ final class SgommelloView: NSView {
     override func mouseDown(with event: NSEvent) {
         // Let him sleep: the break countdown is not a minigame.
         guard action != .sleeping else { return }
+        // Varenne: any click fires the python extension across the screen.
+        if isVarenne {
+            rageLevel = min(1, rageLevel + 0.2)
+            snakeStart = elapsed
+            snakeEnd = elapsed + 4
+            shake = max(shake, 0.5)
+            warpIntensity = 1
+            phrase = punchLines.randomElement()!
+            phraseChangedAt = elapsed
+            AppSettings.shared.pinchSound?.play()
+            return
+        }
         let location = convert(event.locationInWindow, from: nil)
         guard hypot(location.x - position.x, location.y - position.y) < Config.spriteSize.width * 0.6 else {
             return
@@ -173,6 +236,14 @@ final class SgommelloView: NSView {
     private func startNextAction() {
         actionElapsed = 0
         punchLanded = false
+        // Varenne never roams or auto-punches: it stands put (eyes follow the
+        // pointer) and only reacts to a click. The ogre's walk/punch loop is
+        // what made it thrash and spike the warp on its own.
+        if isVarenne {
+            action = .idle
+            idleDuration = 3
+            return
+        }
         let wasWalking = action == .walking
         let roll = Int.random(in: 0..<100)
         if wasWalking {
@@ -200,19 +271,25 @@ final class SgommelloView: NSView {
     /// The fist connects: crack a new portion of the screen right in front of
     /// the monster, shake the frame, and bark a punch line.
     private func landPunch() {
-        let impact = CGPoint(x: position.x + facingScaleX * Config.spriteSize.width * 0.45,
-                             y: position.y + CGFloat.random(in: -20...30))
+        // Varenne strikes the screen head-on (center-ish); the ogre punches
+        // out to the side of its sprite.
+        let impact = isVarenne
+            ? CGPoint(x: bounds.midX + CGFloat.random(in: -60...60),
+                      y: bounds.midY + CGFloat.random(in: -40...80))
+            : CGPoint(x: position.x + facingScaleX * Config.spriteSize.width * 0.45,
+                      y: position.y + CGFloat.random(in: -20...30))
         cracks += Crack.burst(around: impact, rays: 5...7, maxLength: 260, bornAt: elapsed)
         impacts.append((impact, elapsed))
         crackImage = nil
         shake = 1
-        phrase = Config.punchPhrases.randomElement()!
+        warpIntensity = 1
+        phrase = punchLines.randomElement()!
         phraseChangedAt = elapsed
         if playsAudio {
             // Thump + glass together: the punch has body, then the shatter.
             AppSettings.shared.punchSound?.play()
             AppSettings.shared.glassBreakSound?.play()
-            SpeechService.shared.speak(phrase, rage: rageLevel)
+            if !isVarenne { SpeechService.shared.speak(phrase, rage: rageLevel) }
         }
     }
 
@@ -224,6 +301,7 @@ final class SgommelloView: NSView {
         elapsed += 0.03
         appearElapsed += 0.03
         shake = max(0, shake - 0.06)
+        warpIntensity = max(0, warpIntensity - 0.045)
         // Grudges fade: about 30 seconds from fully enraged back to calm.
         rageLevel = max(0, rageLevel - 0.001)
 
@@ -486,6 +564,262 @@ final class SgommelloView: NSView {
 
     // MARK: Drawing
 
+    // MARK: Varenne body
+
+    /// Draws the "Varenne" skin: a single giant appendage rising slowly and
+    /// tremblingly from the bottom edge, screen-anchored (not the roaming
+    /// sprite). South Park paper-cutout look — flat fills, thick black
+    /// outlines, stiff jointed motion — with enormous hairy base spheres, a
+    /// talking face, and an upward thrust on the punch action that drives the
+    /// crack burst and the backdrop warp wired elsewhere.
+    private func drawWilly(in context: CGContext) {
+        let W = bounds.width
+        let H = bounds.height
+        let flesh = NSColor(calibratedRed: 0.88, green: 0.6, blue: 0.58, alpha: 1)
+        let fleshDark = NSColor(calibratedRed: 0.74, green: 0.44, blue: 0.42, alpha: 1)
+        let sack = NSColor(calibratedRed: 0.82, green: 0.54, blue: 0.5, alpha: 1)
+        let hair = NSColor(calibratedRed: 0.2, green: 0.13, blue: 0.1, alpha: 1)
+
+        // Flat fill + thick black outline: the paper-cutout signature.
+        func cutout(_ path: NSBezierPath, _ fill: NSColor, line: CGFloat = 3) {
+            fill.setFill(); path.fill()
+            NSColor.black.setStroke(); path.lineWidth = line; path.stroke()
+        }
+
+        // Slow, straight emergence (~3.5s): rises calmly, no wiggle yet.
+        let riseT = Self.easeInOut(min(1, max(0, (appearElapsed - 0.6) / 3.5)))
+        // Motion (undulation, lean, mouse-follow) fades in only once it's out.
+        let settle = Self.easeInOut(min(1, max(0, (appearElapsed - 3.4) / 1.4)))
+
+        // Punch thrust: wind down slightly, jab up hard, settle back.
+        let punchT = action == .punching ? min(1, actionElapsed / punchDuration) : 0
+        var jab: CGFloat = 0
+        if action == .punching {
+            if punchT < 0.35 {
+                jab = -0.06 * Self.easeInOut(punchT / 0.35)
+            } else if punchT < 0.55 {
+                jab = -0.06 + 0.18 * ((punchT - 0.35) / 0.2)
+            } else {
+                jab = 0.12 * (1 - Self.easeInOut((punchT - 0.55) / 0.45))
+            }
+        }
+
+        let throb = 1 + sin(elapsed * 3) * 0.03 + warpIntensity * 0.12
+        let shaftH = H * 0.48 * throb * (1 + jab) * riseT
+        let shaftW = W * 0.1 * (1 + sin(elapsed * 3) * 0.02 + warpIntensity * 0.05)
+        let tipR = shaftW * 0.66
+        let ballR = shaftW * 0.98 // enormous
+
+        let baseY = -H * 0.02
+        context.saveGState()
+        context.translateBy(x: W * 0.5, y: baseY)
+
+        // Enormous hairy sack: two big cutout spheres, bristling with hair.
+        for side in [-1.0, 1.0] as [CGFloat] {
+            let cx = side * ballR * 0.72
+            let cy = ballR * 0.3 * riseT
+            cutout(NSBezierPath(ovalIn: NSRect(x: cx - ballR, y: cy - ballR,
+                                               width: ballR * 2, height: ballR * 2)), sack)
+            // Long cartoon strands sprouting thick around the lower two-thirds
+            // of the sphere, each undulating along its length like underwater.
+            hair.setStroke()
+            let count = 60
+            for i in 0..<count {
+                // Cover a wide arc (past the equator) for a full bushy look.
+                let a = CGFloat.pi * (0.82 + 1.36 * (CGFloat(i) / CGFloat(count - 1)))
+                let r0 = ballR * (0.9 + 0.08 * abs(sin(CGFloat(i) * 2.3)))
+                let sx = cx + cos(a) * r0, sy = cy + sin(a) * r0
+                let len = ballR * (0.6 + 0.55 * abs(sin(CGFloat(i) * 1.9)))
+                let perpX = -sin(a), perpY = cos(a)
+                let strand = NSBezierPath()
+                strand.lineWidth = 2.2
+                strand.lineCapStyle = .round
+                strand.move(to: NSPoint(x: sx, y: sy))
+                let steps = 7
+                for s in 1...steps {
+                    let f = CGFloat(s) / CGFloat(steps)
+                    let along = len * f
+                    let wave = sin(elapsed * 3 + CGFloat(i) * 0.8 + f * 3.6) * (len * 0.2) * f
+                    strand.line(to: NSPoint(x: sx + cos(a) * along + perpX * wave,
+                                            y: sy + sin(a) * along + perpY * wave))
+                }
+                strand.stroke()
+            }
+        }
+
+        // Python mode: a click extends it across the screen in a travelling
+        // snake wave; it eases back on its own after ~4s.
+        // Clamp the eased inputs to [0,1]: easeInOut is only defined there and
+        // blows up for out-of-range values (a huge idle `snakeEnd` otherwise
+        // yields a giant `snake`, launching the shaft off-screen at rest).
+        var snake: CGFloat = 0
+        if elapsed < snakeEnd {
+            snake = Self.easeInOut(min(1, max(0, (elapsed - snakeStart) / 1.2)))
+        } else {
+            snake = 1 - Self.easeInOut(min(1, max(0, (elapsed - snakeEnd) / 1.1)))
+        }
+
+        // The glans + talking face. Eyes track the pointer via (lookX, lookY),
+        // a unit vector from the head toward the mouse.
+        func drawHead(atX hx: CGFloat, atY hy: CGFloat, lookX: CGFloat, lookY: CGFloat) {
+            cutout(NSBezierPath(ovalIn: NSRect(x: hx - tipR * 1.08, y: hy - tipR * 0.7,
+                                               width: tipR * 2.16, height: tipR * 1.95)), fleshDark)
+            let faceY = hy + tipR * 0.6
+            let speaking = (elapsed - phraseChangedAt) < 3.0 && action != .sleeping
+            let mouthOpen = tipR * (speaking ? 0.12 + abs(sin(elapsed * 16)) * 0.42 : 0.08)
+            if action == .sleeping {
+                NSColor.black.setStroke()
+                for ex in [-tipR * 0.42, tipR * 0.42] {
+                    let lid = NSBezierPath()
+                    lid.lineWidth = 2.5
+                    lid.move(to: NSPoint(x: hx + ex - tipR * 0.16, y: faceY))
+                    lid.line(to: NSPoint(x: hx + ex + tipR * 0.16, y: faceY))
+                    lid.stroke()
+                }
+            } else {
+                let eyeR = tipR * 0.17
+                for ex in [-tipR * 0.42, tipR * 0.42] {
+                    let ecx = hx + ex, ecy = faceY
+                    // White sclera.
+                    let sclera = NSBezierPath(ovalIn: NSRect(x: ecx - eyeR, y: ecy - eyeR,
+                                                             width: eyeR * 2, height: eyeR * 2))
+                    NSColor(calibratedWhite: 0.96, alpha: 1).setFill(); sclera.fill()
+                    NSColor.black.setStroke(); sclera.lineWidth = 1.5; sclera.stroke()
+                    // Pupil slides toward the pointer, reddening with rage.
+                    let pr = eyeR * 0.52
+                    let px = ecx + lookX * (eyeR - pr), py = ecy + lookY * (eyeR - pr)
+                    NSColor(calibratedRed: 0.1 + rageLevel * 0.85, green: 0.08, blue: 0.08, alpha: 1).setFill()
+                    NSBezierPath(ovalIn: NSRect(x: px - pr, y: py - pr, width: pr * 2, height: pr * 2)).fill()
+                }
+            }
+            let mouth = NSBezierPath(ovalIn: NSRect(x: hx - tipR * 0.34, y: hy + tipR * 0.02 - mouthOpen / 2,
+                                                    width: tipR * 0.68, height: max(3, mouthOpen)))
+            NSColor(calibratedRed: 0.35, green: 0.12, blue: 0.14, alpha: 1).setFill(); mouth.fill()
+            NSColor.black.setStroke(); mouth.lineWidth = 2; mouth.stroke()
+        }
+
+        // One unified curved tube for both states, so it never breaks into
+        // flat bands: at rest it stands tall and bends its tip toward the
+        // pointer with a gentle undulation; the click blends it into a long
+        // travelling snake wave. Head is kept on screen by bounding the lean
+        // and capping the length.
+        let mouseView = convert(window?.mouseLocationOutsideOfEventStream ?? NSPoint(x: W * 0.5, y: H * 0.7),
+                                from: nil)
+        let mLocalX = mouseView.x - W * 0.5
+        let mLocalY = max(80, mouseView.y - baseY)
+        // The body only leans a hair toward the pointer; the eyes do the real
+        // following. Heavily smoothed so it never dances around.
+        let targetLean = max(-0.12, min(0.12, mLocalX / (W * 0.5))) * (1 - snake) * settle
+        willyLean += (targetLean - willyLean) * 0.05
+        let lean = willyLean
+
+        let maxTop = H * 0.82 - tipR * 1.6
+        let lengthRest = min(H * 0.5 * throb * riseT, maxTop)
+        let lengthPython = min(shaftH + hypot(W, H) * 1.5, maxTop)
+        let L = lengthRest + (lengthPython - lengthRest) * snake
+        // No undulation during the calm emergence; it fades in with `settle`.
+        let ampRest = shaftW * 0.55 * settle
+        let ampPython = W * 0.32
+        let amp = ampRest + (ampPython - ampRest) * snake
+        let waves = 1.1 + snake * 1.0
+        let speed = 1.3 + snake * 0.7
+
+        let tube = NSBezierPath()
+        tube.lineJoinStyle = .round
+        tube.lineCapStyle = .round
+        tube.move(to: .zero)
+        var tip = NSPoint.zero
+        let steps = 44
+        for k in 1...steps {
+            let t = CGFloat(k) / CGFloat(steps)
+            // Spine curves toward the pointer; wave rides on top, damped at tip.
+            let bend = sin(t * .pi / 2) * lean
+            let along = t * L
+            let wave = amp * sin(t * waves * .pi - elapsed * speed) * (0.2 + 0.8 * t) * (1 - pow(t, 3))
+            tip = NSPoint(x: sin(bend) * along + wave, y: cos(bend) * along)
+            tube.line(to: tip)
+        }
+        NSColor.black.setStroke(); tube.lineWidth = shaftW + 5; tube.stroke()
+        flesh.setStroke(); tube.lineWidth = shaftW; tube.stroke()
+        let lookDX = mLocalX - tip.x, lookDY = mLocalY - tip.y
+        let lookLen = max(1, hypot(lookDX, lookDY))
+        drawHead(atX: tip.x, atY: tip.y, lookX: lookDX / lookLen, lookY: lookDY / lookLen)
+
+        context.restoreGState()
+
+        // No voice, no bubble: Varenne nags with a flashing alert banner.
+        if riseT > 0.4 {
+            drawFlashingAlert()
+        }
+    }
+
+    /// Big blinking "ALZATI O TI SPANO!" banner for the mute Varenne skin.
+    private func drawFlashingAlert() {
+        let on = sin(elapsed * 6) > -0.35 // mostly on, brief blink-off
+        let alpha: CGFloat = on ? 1 : 0.12
+        let text = "ALZATI O TI SPANO!" as NSString
+        let fontSize = min(56, bounds.width * 0.06)
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.9 * alpha)
+        shadow.shadowBlurRadius = 8
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: fontSize, weight: .heavy),
+            .foregroundColor: NSColor(calibratedRed: 1, green: 0.16, blue: 0.16, alpha: alpha),
+            .strokeColor: NSColor.black.withAlphaComponent(alpha),
+            .strokeWidth: -4,
+            .shadow: shadow
+        ]
+        let size = text.size(withAttributes: attrs)
+        let x = (bounds.width - size.width) / 2
+        let y = bounds.height * 0.84
+        let plate = NSRect(x: x - 28, y: y - 14, width: size.width + 56, height: size.height + 24)
+        NSColor.black.withAlphaComponent(0.45 * alpha).setFill()
+        NSBezierPath(roundedRect: plate, xRadius: 14, yRadius: 14).fill()
+        text.draw(at: NSPoint(x: x, y: y), withAttributes: attrs)
+    }
+
+    /// Renders the phrase bubble anchored above a point, wrapping and clamping
+    /// it inside the screen. Shared by the monster and the Varenne skins.
+    private func drawSpeechBubble(anchorX: CGFloat, bottomY: CGFloat) {
+        let phraseT = min(1, (elapsed - phraseChangedAt) / 0.25)
+        let bubbleAlpha = 0.85 * phraseT
+        let bubbleRise = (1 - Self.easeInOut(phraseT)) * -8
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        let bubbleAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.boldSystemFont(ofSize: 22),
+            .foregroundColor: NSColor.white.withAlphaComponent(phraseT),
+            .paragraphStyle: paragraph
+        ]
+        let maxTextWidth = min(320, bounds.width - 80)
+        let textRect = (phrase as NSString).boundingRect(
+            with: NSSize(width: maxTextWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin],
+            attributes: bubbleAttrs)
+        let padding: CGFloat = 14
+        var bubbleX = anchorX - textRect.width / 2 - padding
+        bubbleX = min(max(bubbleX, 10), bounds.width - textRect.width - padding * 2 - 10)
+        let bubbleRect = NSRect(x: bubbleX,
+                                 y: bottomY + bubbleRise,
+                                 width: textRect.width + padding * 2,
+                                 height: textRect.height + padding)
+        let path = NSBezierPath(roundedRect: bubbleRect, xRadius: 12, yRadius: 12)
+        let tailX = min(max(anchorX, bubbleRect.minX + 16), bubbleRect.maxX - 16)
+        let tail = NSBezierPath()
+        tail.move(to: NSPoint(x: tailX - 8, y: bubbleRect.minY))
+        tail.line(to: NSPoint(x: tailX + 8, y: bubbleRect.minY))
+        tail.line(to: NSPoint(x: tailX, y: bubbleRect.minY - 12))
+        tail.close()
+        NSColor(calibratedWhite: 0.1, alpha: bubbleAlpha).setFill()
+        path.fill()
+        tail.fill()
+        (phrase as NSString).draw(
+            with: NSRect(x: bubbleRect.minX + padding, y: bubbleRect.minY + padding / 2,
+                         width: textRect.width, height: textRect.height),
+            options: [.usesLineFragmentOrigin],
+            attributes: bubbleAttrs)
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
@@ -494,9 +828,33 @@ final class SgommelloView: NSView {
             context.translateBy(x: sin(elapsed * 90) * shake * 9,
                                 y: cos(elapsed * 70) * shake * 6)
         }
+        // Varenne: the scene trembles only while the screen is being warped,
+        // not at rest (a constant jitter read as "bouncing").
+        if isVarenne, warpIntensity > 0.01 {
+            let amp = warpIntensity * 6
+            context.translateBy(x: sin(elapsed * 44) * amp, y: cos(elapsed * 37) * amp * 0.8)
+        }
 
-        NSColor.black.withAlphaComponent(0.35).setFill()
-        bounds.insetBy(dx: -20, dy: -20).fill()
+        // Varenne shows the (warped) desktop snapshot behind the appendage;
+        // otherwise the classic dark veil. If the snapshot is missing (no
+        // Screen Recording permission), fall back to the veil so it degrades.
+        if isVarenne, let warped = warpedBackdrop() {
+            // Draw it slightly crooked and oversized so the real windows look
+            // bent, without exposing the transparent corners under rotation.
+            context.saveGState()
+            let tilt = sin(elapsed * 1.3) * 0.015 + warpIntensity * sin(elapsed * 30) * 0.012
+            context.translateBy(x: bounds.midX, y: bounds.midY)
+            context.rotate(by: tilt)
+            context.scaleBy(x: 1.07, y: 1.07)
+            context.translateBy(x: -bounds.midX, y: -bounds.midY)
+            warped.draw(in: bounds, from: .zero, operation: .copy, fraction: 1)
+            context.restoreGState()
+            NSColor.black.withAlphaComponent(0.18).setFill()
+            bounds.insetBy(dx: -20, dy: -20).fill()
+        } else {
+            NSColor.black.withAlphaComponent(0.35).setFill()
+            bounds.insetBy(dx: -20, dy: -20).fill()
+        }
 
         // Cracks: fully-grown ones come from the cached raster; still-growing
         // ones (entry burst or a fresh punch) are stroked live on top.
@@ -517,6 +875,13 @@ final class SgommelloView: NSView {
         crackImage?.draw(in: bounds)
         if !growing.isEmpty || !growingRings.isEmpty {
             drawCracks(growing, rings: growingRings, into: context)
+        }
+
+        // Varenne skin: a screen-anchored appendage, not the roaming sprite.
+        if isVarenne {
+            drawWilly(in: context)
+            drawSafeZone()
+            return
         }
 
         // Pop-out: the monster bursts through the crack with an overshoot,
@@ -612,46 +977,9 @@ final class SgommelloView: NSView {
             return
         }
 
-        // Speech bubble, sized to the phrase (wrapping long ones) and clamped
-        // inside the screen so it never spills off-edge near the borders.
-        // New phrases pop in with a quick fade + rise.
-        let phraseT = min(1, (elapsed - phraseChangedAt) / 0.25)
-        let bubbleAlpha = 0.85 * phraseT
-        let bubbleRise = (1 - Self.easeInOut(phraseT)) * -8
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
-        let bubbleAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.boldSystemFont(ofSize: 22),
-            .foregroundColor: NSColor.white.withAlphaComponent(phraseT),
-            .paragraphStyle: paragraph
-        ]
-        let maxTextWidth = min(320, bounds.width - 80)
-        let textRect = (phrase as NSString).boundingRect(
-            with: NSSize(width: maxTextWidth, height: .greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin],
-            attributes: bubbleAttrs)
-        let padding: CGFloat = 14
-        var bubbleX = position.x - textRect.width / 2 - padding
-        bubbleX = min(max(bubbleX, 10), bounds.width - textRect.width - padding * 2 - 10)
-        let bubbleRect = NSRect(x: bubbleX,
-                                 y: position.y + Config.spriteSize.height / 2 + 14 + bubbleRise,
-                                 width: textRect.width + padding * 2,
-                                 height: textRect.height + padding)
-        let path = NSBezierPath(roundedRect: bubbleRect, xRadius: 12, yRadius: 12)
-        let tailX = min(max(position.x, bubbleRect.minX + 16), bubbleRect.maxX - 16)
-        let tail = NSBezierPath()
-        tail.move(to: NSPoint(x: tailX - 8, y: bubbleRect.minY))
-        tail.line(to: NSPoint(x: tailX + 8, y: bubbleRect.minY))
-        tail.line(to: NSPoint(x: tailX, y: bubbleRect.minY - 12))
-        tail.close()
-        NSColor(calibratedWhite: 0.1, alpha: bubbleAlpha).setFill()
-        path.fill()
-        tail.fill()
-        (phrase as NSString).draw(
-            with: NSRect(x: bubbleRect.minX + padding, y: bubbleRect.minY + padding / 2,
-                         width: textRect.width, height: textRect.height),
-            options: [.usesLineFragmentOrigin],
-            attributes: bubbleAttrs)
+        // Speech bubble, anchored above the monster's head.
+        drawSpeechBubble(anchorX: position.x,
+                         bottomY: position.y + Config.spriteSize.height / 2 + 14)
 
         drawSafeZone()
     }
@@ -693,7 +1021,7 @@ final class SgommelloView: NSView {
         wakeAt = elapsed + CGFloat(duration)
         phrase = Config.sleepPhrases.randomElement()!
         phraseChangedAt = elapsed
-        if playsAudio {
+        if playsAudio && !isVarenne {
             SpeechService.shared.speak(phrase)
         }
     }
@@ -709,7 +1037,7 @@ final class SgommelloView: NSView {
         shake = max(shake, 0.4)
         phrase = Config.wakePhrases.randomElement()!
         phraseChangedAt = elapsed
-        if playsAudio {
+        if playsAudio && !isVarenne {
             SpeechService.shared.speak(phrase, rage: rageLevel)
         }
     }

@@ -79,6 +79,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if !granted { AppSettings.shared.presenceEnabled = false }
             }
         }
+
+        // Varenne warps a desktop snapshot: prompt for Screen Recording upfront
+        // so the effect works on first appearance (may need a relaunch after
+        // granting). Without it the overlay simply falls back to the dark veil.
+        if AppSettings.shared.varenneMode {
+            _ = CGRequestScreenCaptureAccess()
+        }
     }
 
     @objc private func openSettings() {

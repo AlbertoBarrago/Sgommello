@@ -32,6 +32,17 @@ final class SettingsModel: ObservableObject {
         }
     }
 
+    @Published var varenneMode: Bool {
+        didSet {
+            AppSettings.shared.varenneMode = varenneMode
+            // Prompt for Screen Recording so the window-warp effect can work.
+            // If refused, Varenne still shows over the plain dark veil.
+            if varenneMode {
+                _ = CGRequestScreenCaptureAccess()
+            }
+        }
+    }
+
     /// Installed Italian voices for the picker (identifier + display name).
     let voices: [(id: String, name: String)]
 
@@ -43,6 +54,7 @@ final class SettingsModel: ObservableObject {
         breakMinutes = AppSettings.shared.breakMinutes
         voiceEnabled = AppSettings.shared.voiceEnabled
         presenceEnabled = AppSettings.shared.presenceEnabled
+        varenneMode = AppSettings.shared.varenneMode
         voices = SpeechService.shared.italianVoices.map { ($0.identifier, $0.name) }
         voiceIdentifier = AppSettings.shared.voiceIdentifier
             ?? SpeechService.shared.defaultVoice?.identifier ?? ""
@@ -105,6 +117,15 @@ struct SettingsView: View {
                     Label("Ascolta un esempio", systemImage: "speaker.wave.2.fill")
                 }
                 .disabled(!model.voiceEnabled)
+            }
+
+            Section("Personaggio") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Modalità Varenne 🐴", isOn: $model.varenneMode)
+                    Text("Al posto del mostro spunta Varenne dal basso, deforma le finestre e lampeggia \"ALZATI O TI SPANO\". Cliccalo e si allunga a serpente su tutto lo schermo. Nessuna voce. Dalla prossima apparizione.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Webcam") {
