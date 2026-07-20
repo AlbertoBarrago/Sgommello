@@ -121,8 +121,8 @@ struct SettingsView: View {
 
             Section("Personaggio") {
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Modalità Varenne 🐴", isOn: $model.varenneMode)
-                    Text("Al posto del mostro spunta Varenne dal basso, deforma le finestre e lampeggia \"ALZATI O TI SPANO\". Cliccalo e si allunga a serpente su tutto lo schermo. Nessuna voce. Dalla prossima apparizione.")
+                    Toggle("Modalità Varenne 🍆", isOn: $model.varenneMode)
+                    Text("Un ospite muto e beffardo al posto del mostro. Cliccalo. Dalla prossima apparizione.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

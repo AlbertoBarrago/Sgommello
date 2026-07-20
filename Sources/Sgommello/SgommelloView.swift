@@ -659,14 +659,12 @@ final class SgommelloView: NSView {
             snake = 1 - Self.easeInOut(min(1, max(0, (elapsed - snakeEnd) / 1.1)))
         }
 
-        // The glans + talking face. Eyes track the pointer via (lookX, lookY),
-        // a unit vector from the head toward the mouse.
+        // The glans + face. It's mute, so no moving mouth: eyes track the
+        // pointer via (lookX, lookY) and it wears a fixed mocking grin.
         func drawHead(atX hx: CGFloat, atY hy: CGFloat, lookX: CGFloat, lookY: CGFloat) {
             cutout(NSBezierPath(ovalIn: NSRect(x: hx - tipR * 1.08, y: hy - tipR * 0.7,
                                                width: tipR * 2.16, height: tipR * 1.95)), fleshDark)
             let faceY = hy + tipR * 0.6
-            let speaking = (elapsed - phraseChangedAt) < 3.0 && action != .sleeping
-            let mouthOpen = tipR * (speaking ? 0.12 + abs(sin(elapsed * 16)) * 0.42 : 0.08)
             if action == .sleeping {
                 NSColor.black.setStroke()
                 for ex in [-tipR * 0.42, tipR * 0.42] {
@@ -692,10 +690,18 @@ final class SgommelloView: NSView {
                     NSBezierPath(ovalIn: NSRect(x: px - pr, y: py - pr, width: pr * 2, height: pr * 2)).fill()
                 }
             }
-            let mouth = NSBezierPath(ovalIn: NSRect(x: hx - tipR * 0.34, y: hy + tipR * 0.02 - mouthOpen / 2,
-                                                    width: tipR * 0.68, height: max(3, mouthOpen)))
-            NSColor(calibratedRed: 0.35, green: 0.12, blue: 0.14, alpha: 1).setFill(); mouth.fill()
-            NSColor.black.setStroke(); mouth.lineWidth = 2; mouth.stroke()
+            // Mocking grin: an asymmetric curve hooking up on one side.
+            if action != .sleeping {
+                let my = hy + tipR * 0.08
+                let grin = NSBezierPath()
+                grin.lineWidth = 3
+                grin.lineCapStyle = .round
+                grin.move(to: NSPoint(x: hx - tipR * 0.38, y: my))
+                grin.curve(to: NSPoint(x: hx + tipR * 0.44, y: my + tipR * 0.16),
+                           controlPoint1: NSPoint(x: hx - tipR * 0.05, y: my - tipR * 0.24),
+                           controlPoint2: NSPoint(x: hx + tipR * 0.22, y: my - tipR * 0.06))
+                NSColor.black.setStroke(); grin.stroke()
+            }
         }
 
         // One unified curved tube for both states, so it never breaks into
